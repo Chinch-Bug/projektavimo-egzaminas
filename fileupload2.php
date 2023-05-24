@@ -26,17 +26,10 @@ fclose($ifp);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         $q = "INSERT into reports (reptype, animaltype, descr, lat, longi, file) values ('".$_POST['reportType']."', '".$_POST['animalType']."', '".$_POST['description']."', '".$_POST['latitude']."', '".$_POST['longitude']."', '".$fileLoc."')";
     
-        $pdo->exec($q);
-	print ("<script> console.log(".$_POST['latitude'].");</script>");         
+        $pdo->exec($q);      
         }
         catch(PDOException $e){
             echo "Error" . $e->getMessage();
         }
         $pdo = null;
-
-function customError($errno, $errstr){
-echo ("<script>console.log(Error: [".$errno."] ".$errstr.");</script>");
-}
-
-set_error_handler("customError");
 ?>
