@@ -36,17 +36,27 @@ header('Access-Control-Allow-Methods: GET, POST');
     foreach($rows as &$row){
     $row['distance'] = distance($userlat, $userlong, (float)$row['lat'], (float)$row['longi']);
     }
+    
+    //print(json_encode($rows)."<br><br>");
 
     $length = sizeof($rows);
     for ($i = 0 ; $i < $length ; $i++){
-        if($rows[$i]['distance'] > 1){
-            for($j = $i ; $j < $length-1 ; $j++){
+      if($rows[$i]['distance'] > 1){
+        //print(json_encode($rows[$i]['distance'])."<br><br>");
+        for($j = $i ; $j < $length-1 ; $j++){
                 $rows[$j] = $rows[$j+1];
             }
-            $length--;
-        }
+        //print($rows[$length-2]['descr']."<br><br>");
+        $length--;
+        $i--;
+      }
     }
 
+    for($i = 0; $i < $length ; $i++){
+      $filtered[] = $rows[$i];
+    }
+
+    //print(json_encode($rows)."<br><br>");
     
     function minRunLength($n){
         $r = 0;
@@ -58,7 +68,7 @@ header('Access-Control-Allow-Methods: GET, POST');
         return $n + $r;
     } 
 
-    function insertionSort($arr,$left,$right){
+    function insertionSort(&$arr,$left,$right){
         for($i = $left + 1; $i <= $right; $i++)
         {
             $temp = $arr[$i];
@@ -70,10 +80,12 @@ header('Access-Control-Allow-Methods: GET, POST');
                 $j--;
             }
             $arr[$j + 1] = $temp;
+                //print(json_encode($arr)."<br><br>");
         }
+                //print(json_encode($arr)."<br><br>");
     }
 
-    function merge($arr, $l, $m, $r)
+    function merge(&$arr, $l, $m, $r)
     {
         $len1 = $m - $l + 1;
         $len2 = $r - $m;
@@ -122,14 +134,19 @@ header('Access-Control-Allow-Methods: GET, POST');
         }
     }
 
-    function  timSort($arr, $n)
+    function  timSort(&$arr, $n)
     {
         $minRun = minRunLength(32);
             
         for($i = 0; $i < $n; $i += $minRun)
         {
-            insertionSort($arr, $i, min(
-                ($i + 32 - 1), ($n - 1)));
+            if($i+31 > $n-1){
+              insertionSort($arr, $i, $n-1);
+            }  
+            else{
+              insertionSort($arr, $i, $i+31);
+            }
+          //print(json_encode($arr)."<br><br>");
         }
     
         for($size = $minRun; $size < $n; $size = 2 * $size)
@@ -149,11 +166,39 @@ header('Access-Control-Allow-Methods: GET, POST');
         }
     }
 
-    timSort($rows, $length);
+    timSort($filtered, $length);
 
-    echo(json_encode($rows));
+    function formMessage($filtered, $length){
+      if($length < 1){
+	$data[] = ["N/A", "No reports found"];
+	}
+      for($i = 0; $i < $length ; $i++){
+        $data[][] = number_format($filtered[$i]['distance']*1000, 2, ",", "")."m away";
+      }
+      for($i = 0; $i < $length ; $i++){
+        $message = "An animal was reported ";
+        
+        if($filtered[$i]['reptype'] == "Missing Animal"){
+          $message = $message."missing ";
+        }
+        else{
+          $message = $message."as found ";
+        }
 
-    //print(json_encode($data));
+        $message = $message."at ".$filtered[$i]['timestamp'].". The following description of the ".strtolower($filtered[$i]['animaltype'])." was provided: ".$filtered[$i]['descr'].". Contact information currently unavailable.";
+
+        $data[$i][] = $message;
+      }
+
+      return $data;
+    }
+
+    //print(json_encode($filtered));
+
+    $data = formMessage($filtered, $length);
+    $output['reports'] = $data;
+
+    print(json_encode($output));
     }
     catch(PDOException $e){
         echo "Error" . $e->getMessage();
